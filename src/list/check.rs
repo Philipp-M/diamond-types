@@ -1,15 +1,17 @@
 use jumprope::JumpRope;
 use crate::list::{ListBranch, ListCRDT, ListOpLog};
 
+use super::RopeLike;
+
 /// This file contains debugging assertions to validate the document's internal state.
 ///
 /// This is used during fuzzing to make sure everything is working properly, and if not, find bugs
 /// as early as possible.
 
-impl ListBranch {
+impl<T: RopeLike + Default + PartialEq + std::fmt::Debug> ListBranch<T> {
     #[allow(unused)]
-    pub fn dbg_assert_content_eq_rope(&self, expected_content: &JumpRope) {
-        assert_eq!(&self.content, expected_content);
+    pub fn dbg_assert_content_eq_rope<C: std::ops::Deref<Target = T>>(&self, expected_content: &C) {
+        assert_eq!(&self.content, expected_content.deref());
     }
 
 

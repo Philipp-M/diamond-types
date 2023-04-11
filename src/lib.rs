@@ -51,7 +51,7 @@
 //! use diamond_types::list::*;
 //! let mut oplog = ListOpLog::new();
 //! // ...
-//! let mut branch = ListBranch::new_at_tip(&oplog);
+//! let mut branch: ListBranch<jumprope::JumpRopeBuf> = ListBranch::new_at_tip(&oplog);
 //! // Equivalent to let mut branch = Branch::new_at_local_version(&oplog, oplog.get_local_version());
 //! println!("branch content {}", branch.content().to_string());
 //! ```
@@ -62,7 +62,7 @@
 //! use diamond_types::list::*;
 //! let mut oplog = ListOpLog::new();
 //! // ...
-//! let mut branch = ListBranch::new_at_tip(&oplog);
+//! let mut branch: ListBranch<jumprope::JumpRopeBuf> = ListBranch::new_at_tip(&oplog);
 //! let george = oplog.get_or_create_agent_id("george");
 //! oplog.add_insert(george, 0, "asdf");
 //! branch.merge(&oplog, oplog.local_frontier_ref());

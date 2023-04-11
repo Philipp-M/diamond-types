@@ -5,6 +5,8 @@
 //! Currently this code only supports lists of unicode characters (text documents). Support for
 //! more data types will be added over time.
 
+use std::ops::Range;
+
 use smartstring::alias::String as SmartString;
 
 use crate::list::operation::ListOpKind;
@@ -45,6 +47,43 @@ mod merge;
 //
 // }
 
+pub trait RopeLike {
+    // type CharIterator<'a>: Iterator<Item = char> where Self: 'a;
+    fn insert(&mut self, pos: usize, content: &str);
+    fn remove_at_range(&mut self, range: Range<usize>);
+    fn len_chars(&self) -> usize;
+    fn is_empty(&self) -> bool {
+        self.len_chars() == 0
+    }
+    // fn slice<'a>(&self, range: Range<usize>) -> Self::CharIterator<'a>;
+    fn slice_str(&self, range: Range<usize>) -> SmartString;
+}
+
+impl RopeLike for jumprope::JumpRopeBuf {
+    // type CharIterator<'a> = jumprope::iter::CharsInRange<'a>;
+    fn insert(&mut self, pos: usize, content: &str) {
+        self.insert(pos, content);
+    }
+
+    fn remove_at_range(&mut self, range: Range<usize>) {
+        self.remove(range);
+    }
+
+    fn len_chars(&self) -> usize {
+        self.len_chars()
+    }
+
+    fn is_empty(&self) -> bool {
+        self.is_empty()
+    }
+
+    // fn slice_chars<'a>(&self, range: Range<usize>) -> Self::CharIterator<'a> {
+    fn slice_str(&self, range: Range<usize>) -> SmartString {
+        // todo!()
+        self.borrow().slice_chars(range).collect()
+    }
+}
+
 /// A branch stores a checkout / snapshot of a document at some moment in time. Branches are the
 /// normal way for editors to interact with an [OpLog](OpLog), which stores the actual change set.
 ///
@@ -63,7 +102,7 @@ mod merge;
 /// [`delete`](Branch::delete) methods. These methods append new operations to the oplog, and modify
 /// the branch to contain the named changes.
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct ListBranch {
+pub struct ListBranch<T: RopeLike + Default> {
     /// The version the branch is currently at. This is used to track which changes the branch has
     /// or has not locally merged.
     ///
@@ -72,7 +111,8 @@ pub struct ListBranch {
     version: Frontier,
 
     /// The document's content.
-    content: jumprope::JumpRopeBuf,
+    content: T,
+    // content: jumprope::JumpRopeBuf,
 }
 
 /// An OpLog is a collection of Diamond Types operations, stored in a super fancy compact way. Each
@@ -140,7 +180,8 @@ pub struct ListOpLog {
 ///   instantiate the oplog (and any visible branches) separately.
 #[derive(Debug, Clone)]
 pub struct ListCRDT {
-    pub branch: ListBranch,
+    pub branch: ListBranch<jumprope::JumpRopeBuf>,
+    // pub branch: ListBranch,
     pub oplog: ListOpLog,
 }
 

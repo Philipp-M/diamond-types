@@ -12,6 +12,8 @@ use crate::rev_range::RangeRev;
 use crate::rle::KVPair;
 use crate::unicount::count_chars;
 
+use super::RopeLike;
+
 impl Default for ListOpLog {
     fn default() -> Self {
         Self::new()
@@ -29,13 +31,13 @@ impl ListOpLog {
         }
     }
 
-    pub fn checkout(&self, local_version: &[LV]) -> ListBranch {
+    pub fn checkout<T: RopeLike + Default>(&self, local_version: &[LV]) -> ListBranch<T> {
         let mut branch = ListBranch::new();
         branch.merge(self, local_version);
         branch
     }
 
-    pub fn checkout_tip(&self) -> ListBranch {
+    pub fn checkout_tip<T: RopeLike + Default>(&self) -> ListBranch<T> {
         let mut branch = ListBranch::new();
         branch.merge(self, self.cg.version.as_ref());
         branch

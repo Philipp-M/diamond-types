@@ -611,7 +611,7 @@ impl ListOpLog {
             write_local_version(&mut start_branch, from_version, &mut agent_mapping, self);
 
             if opts.store_start_branch_content {
-                let branch_here = ListBranch::new_at_local_version(self, from_version);
+                let branch_here: ListBranch<jumprope::JumpRopeBuf> = ListBranch::new_at_local_version(self, from_version);
                 // dbg!(&branch_here);
                 write_content_rope(&mut start_branch, &branch_here.content.borrow(), compress_bytes.as_mut());
             }
@@ -621,7 +621,7 @@ impl ListOpLog {
             let mut end_branch = Vec::new();
             write_local_version(&mut end_branch, self.cg.version.as_ref(), &mut agent_mapping, self);
 
-            let branch_here = ListBranch::new_at_tip(self);
+            let branch_here: ListBranch<jumprope::JumpRopeBuf> = ListBranch::new_at_tip(self);
             write_content_rope(&mut end_branch, &branch_here.content.borrow(), compress_bytes.as_mut());
 
             Some(end_branch)

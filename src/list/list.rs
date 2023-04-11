@@ -9,6 +9,8 @@ use crate::dtrange::DTRange;
 use crate::encoding::parseerror::ParseError;
 use crate::unicount::count_chars;
 
+use super::RopeLike;
+
 // For local changes to a branch, we take the checkout's frontier as the new parents list.
 fn insert_history_local(oplog: &mut ListOpLog, frontier: &mut Frontier, range: DTRange) {
     // Fast path for local edits. For some reason the code below is remarkably non-performant.
@@ -44,7 +46,7 @@ fn insert_history_local(oplog: &mut ListOpLog, frontier: &mut Frontier, range: D
 /// This method does that.
 ///
 /// (I low key hate the duplicated code though.)
-pub(crate) fn apply_local_operations(oplog: &mut ListOpLog, branch: &mut ListBranch, agent: AgentId, local_ops: &[TextOperation]) -> LV {
+pub(crate) fn apply_local_operations<T: RopeLike + Default>(oplog: &mut ListOpLog, branch: &mut ListBranch<T>, agent: AgentId, local_ops: &[TextOperation]) -> LV {
     let first_time = oplog.len();
     let mut next_time = first_time;
 
@@ -61,7 +63,7 @@ pub(crate) fn apply_local_operations(oplog: &mut ListOpLog, branch: &mut ListBra
             }
 
             Del => {
-                branch.content.remove(pos..pos + len);
+                branch.content.remove_at_range(pos..pos + len);
             }
         }
 
@@ -87,7 +89,7 @@ pub(crate) fn apply_local_operations(oplog: &mut ListOpLog, branch: &mut ListBra
 
 // These methods exist to make benchmark numbers better. I'm the worst!
 
-fn internal_do_insert(oplog: &mut ListOpLog, branch: &mut ListBranch, agent: AgentId, pos: usize, content: &str) -> LV {
+fn internal_do_insert<T: RopeLike + Default>(oplog: &mut ListOpLog, branch: &mut ListBranch<T>, agent: AgentId, pos: usize, content: &str) -> LV {
     let start = oplog.len();
 
     let len = count_chars(content);
@@ -113,10 +115,10 @@ fn internal_do_insert(oplog: &mut ListOpLog, branch: &mut ListBranch, agent: Age
     end - 1
 }
 
-fn internal_do_delete(oplog: &mut ListOpLog, branch: &mut ListBranch, agent: AgentId, pos: DTRange) -> LV {
+fn internal_do_delete<T: RopeLike + Default>(oplog: &mut ListOpLog, branch: &mut ListBranch<T>, agent: AgentId, pos: DTRange) -> LV {
     let start = oplog.len();
 
-    branch.content.remove(pos.into());
+    branch.content.remove_at_range(pos.into());
 
     oplog.push_op_internal(start, pos.into(), ListOpKind::Del, None);
 

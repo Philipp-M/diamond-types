@@ -9,12 +9,14 @@ use crate::dtrange::DTRange;
 use crate::{AgentId, Frontier, LV};
 use crate::causalgraph::agent_assignment::remote_ids::RemoteFrontier;
 
-impl ListBranch {
+use super::RopeLike;
+
+impl<T: RopeLike + Default> ListBranch<T> {
     /// Create a new (empty) branch at the start of history. The branch will be an empty list.
     pub fn new() -> Self {
         Self {
             version: Frontier::root(),
-            content: JumpRopeBuf::new(),
+            content: Default::default(),
         }
     }
 
@@ -48,7 +50,7 @@ impl ListBranch {
     /// Return the current document contents. Note there is no mutable variant of this method
     /// because mutating the document's content directly would violate the constraint that all
     /// changes must bump the document's version.
-    pub fn content(&self) -> &JumpRopeBuf { &self.content }
+    pub fn content(&self) -> &T { &self.content }
 
     /// Returns the document's content length.
     ///
@@ -70,7 +72,7 @@ impl ListBranch {
             }
 
             Del => {
-                self.content.remove(pos.into());
+                self.content.remove_at_range(pos.into());
             }
         }
     }
@@ -94,9 +96,7 @@ impl ListBranch {
 
     pub fn make_delete_op(&self, loc: Range<usize>) -> TextOperation {
         assert!(loc.end <= self.content.len_chars());
-        let mut s = SmartString::new();
-        s.extend(self.content.borrow().slice_chars(loc.clone()));
-        TextOperation::new_delete_with_content_range(loc, s)
+        TextOperation::new_delete_with_content_range(loc.clone(), self.content.slice_str(loc))
     }
 
     pub fn apply_local_operations(&mut self, oplog: &mut ListOpLog, agent: AgentId, ops: &[TextOperation]) -> LV {
@@ -119,7 +119,9 @@ impl ListBranch {
     pub fn delete(&mut self, oplog: &mut ListOpLog, agent: AgentId, del_span: Range<usize>) -> LV {
         apply_local_operations(oplog, self, agent, &[self.make_delete_op(del_span)])
     }
+}
 
+impl ListBranch<JumpRopeBuf> {
     #[cfg(feature = "wchar_conversion")]
     pub fn insert_at_wchar(&mut self, oplog: &mut ListOpLog, agent: AgentId, wchar_pos: usize, ins_content: &str) -> LV {
         let char_pos = self.content.borrow().wchars_to_chars(wchar_pos);
@@ -141,20 +143,20 @@ impl ListBranch {
     }
 }
 
-impl Default for ListBranch {
+impl<T: RopeLike + Default> Default for ListBranch<T> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl From<ListBranch> for JumpRope {
-    fn from(branch: ListBranch) -> Self {
+impl From<ListBranch<JumpRopeBuf>> for JumpRope {
+    fn from(branch: ListBranch<JumpRopeBuf>) -> Self {
         branch.into_inner()
     }
 }
 
-impl From<ListBranch> for String {
-    fn from(branch: ListBranch) -> Self {
+impl From<ListBranch<JumpRopeBuf>> for String {
+    fn from(branch: ListBranch<JumpRopeBuf>) -> Self {
         branch.into_inner().to_string()
     }
 }
@@ -170,10 +172,10 @@ mod test {
         let after_ins = oplog.add_insert(0, 0, "hi there");
         let after_del = oplog.add_delete_without_content(0, 2 .. 2 + " there".len());
 
-        let b1 = ListBranch::new_at_local_version(&oplog, &[after_ins]);
+        let b1: ListBranch<jumprope::JumpRopeBuf> = ListBranch::new_at_local_version(&oplog, &[after_ins]);
         assert_eq!(b1.content, "hi there");
 
-        let b2 = ListBranch::new_at_local_version(&oplog, &[after_del]);
+        let b2: ListBranch<jumprope::JumpRopeBuf> = ListBranch::new_at_local_version(&oplog, &[after_del]);
         assert_eq!(b2.content, "hi");
     }
 
@@ -183,10 +185,10 @@ mod test {
         let mut oplog = ListOpLog::new();
         oplog.get_or_create_agent_id("seph");
 
-        let mut branch1 = oplog.checkout(&[]);
+        let mut branch1: ListBranch<jumprope::JumpRopeBuf> = oplog.checkout(&[]);
         branch1.insert(&mut oplog, 0, 0, "aaa");
 
-        let mut branch2 = oplog.checkout(&[]);
+        let mut branch2: ListBranch<jumprope::JumpRopeBuf> = oplog.checkout(&[]);
         branch2.insert(&mut oplog, 0, 0, "bbb");
 
         oplog.dbg_check(true);

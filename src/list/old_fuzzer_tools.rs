@@ -1,5 +1,5 @@
 use rand::prelude::SmallRng;
-use jumprope::JumpRope;
+use jumprope::{JumpRope, JumpRopeBuf};
 use rand::Rng;
 use smallvec::smallvec;
 use rle::MergeableIterator;
@@ -8,7 +8,7 @@ use crate::{AgentId, LV};
 use crate::list::{ListBranch, ListCRDT, ListOpLog};
 use crate::list_fuzzer_tools::random_str;
 
-fn old_make_random_change_raw(oplog: &mut ListOpLog, branch: &ListBranch, mut rope: Option<&mut JumpRope>, agent: AgentId, rng: &mut SmallRng) -> LV {
+fn old_make_random_change_raw(oplog: &mut ListOpLog, branch: &ListBranch<JumpRopeBuf>, mut rope: Option<&mut JumpRope>, agent: AgentId, rng: &mut SmallRng) -> LV {
     let doc_len = branch.len();
     let insert_weight = if doc_len < 100 { 0.55 } else { 0.45 };
     let v = if doc_len == 0 || rng.gen_bool(insert_weight) {

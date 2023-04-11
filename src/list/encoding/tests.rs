@@ -353,7 +353,7 @@ fn merge_when_parents_unsorted() {
     let oplog = ListOpLog::load_from(&data).unwrap();
     // dbg!(&oplog);
     oplog.dbg_check(true);
-    oplog.checkout_tip();
+    oplog.checkout_tip::<jumprope::JumpRopeBuf>();
 }
 
 #[test]

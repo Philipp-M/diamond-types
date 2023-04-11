@@ -6,6 +6,8 @@ use crate::listmerge::merge::{reverse_str, TransformedOpsIter};
 use crate::listmerge::merge::TransformedResult::{BaseMoved, DeleteAlreadyHappened};
 use crate::{DTRange, LV};
 
+use super::RopeLike;
+
 impl ListOpLog {
     pub(crate) fn get_xf_operations_full(&self, from: FrontierRef, merging: FrontierRef) -> TransformedOpsIter {
         TransformedOpsIter::new(&self.cg.graph, &self.cg.agent_assignment,
@@ -49,7 +51,7 @@ impl ListOpLog {
 }
 
 
-impl ListBranch {
+impl<T: RopeLike + Default> ListBranch<T> {
     /// Add everything in merge_frontier into the set..
     pub fn merge(&mut self, oplog: &ListOpLog, merge_frontier: &[LV]) {
         let mut iter = oplog.get_xf_operations_full(self.version.as_ref(), merge_frontier);
@@ -76,7 +78,7 @@ impl ListBranch {
                     let del_end = pos + origin_op.len();
                     debug_assert!(self.content.len_chars() >= del_end);
                     // println!("Delete {}..{} (len {}) '{}'", del_start, del_end, mut_len, to.content.slice_chars(del_start..del_end).collect::<String>());
-                    self.content.remove(pos..del_end);
+                    self.content.remove_at_range(pos..del_end);
                 }
             }
         }
